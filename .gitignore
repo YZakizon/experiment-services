@@ -11,3 +11,5 @@ wheels/
 .env
 experiment_service.log
 neonblue_platform_engineer_test.md
+experiment_service.db
+test.db
