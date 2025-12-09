@@ -22,7 +22,7 @@ export AUTH_HEADER="Authorization: Bearer my_secret_api_key_123"
 
 ### Create a New Experiment:
 ```
-curl -L -X POST 'http://localhost:9000/experiments' \
+curl -X POST 'http://localhost:9000/experiments' \
 -H 'Content-Type: application/json' \
 -H "$AUTH_HEADER" \
 -d '{
