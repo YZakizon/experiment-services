@@ -7,6 +7,9 @@ ClickHouse may be use to store the events and use Postgres for everythin else.
 
 # Running this demo in development
 
+## Running with docker compose (recommened)
+docker compose up -d
+
 ## Running API service
 uv run uvicorn main:app --reload --port 9000
 
@@ -19,7 +22,7 @@ export AUTH_HEADER="Authorization: Bearer my_secret_api_key_123"
 
 ### Create a New Experiment:
 ```
-curl -X POST 'http://localhost:9000/experiments' \
+curl -L -X POST 'http://localhost:9000/experiments' \
 -H 'Content-Type: application/json' \
 -H "$AUTH_HEADER" \
 -d '{
@@ -36,14 +39,14 @@ curl -X POST 'http://localhost:9000/experiments' \
 ```
 # Assigns 'user_A_123' to a variant (e.g., 'red_button')
 
-curl -X GET 'http://localhost:9000/experiments/1/assignment/user_A_123' \
+curl -L -X GET 'http://localhost:9000/experiments/1/assignment/user_A_123' \
 -H "$AUTH_HEADER"
 
 ```
 
 ### Record an Event (Conversion)
 ```
-curl -X POST 'http://localhost:9000/events' \
+curl -L -X POST 'http://localhost:9000/events' \
 -H 'Content-Type: application/json' \
 -H "$AUTH_HEADER" \
 -d '{
@@ -57,7 +60,7 @@ curl -X POST 'http://localhost:9000/events' \
 ```
 # Retrieve results for Experiment ID 1, focusing on "purchase" events.
 
-curl -X GET 'http://localhost:9000/experiments/1/results?event_type=purchase' \
+curl -L -X GET 'http://localhost:9000/experiments/1/results?event_type=purchase' \
 -H "$AUTH_HEADER"
 ```
 
