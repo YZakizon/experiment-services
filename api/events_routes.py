@@ -16,7 +16,7 @@ events_router = APIRouter(
 )
 
 # POST /events (Events remain on the main app as a separate concern)
-@events_router.post("/", response_model=EventResponse, status_code=status.HTTP_201_CREATED)
+@events_router.post("", response_model=EventResponse, status_code=status.HTTP_201_CREATED)
 def record_event_route(
     event_data: EventCreate,
     db: Session = DB_DEPENDENCY

@@ -18,7 +18,7 @@ experiment_router = APIRouter(
 
 # POST /experiments/ (Path is now just "/" because the prefix is set above)
 @experiment_router.post(
-    "/", 
+    "", 
     response_model=ExperimentResponse, 
     status_code=status.HTTP_201_CREATED
 )
