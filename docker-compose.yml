@@ -1,0 +1,28 @@
+services:
+  valkey:
+    image: valkey/valkey:latest
+    container_name: valkey
+    ports:
+      - "6379:6379"
+    volumes:
+      - valkey_data:/data
+    command: >
+      valkey-server --save 60 1 --loglevel warning --appendonly yes
+    restart: unless-stopped
+
+  api:
+    build: .
+    container_name: experiment_service
+    ports:
+      - "9000:9000"
+    volumes:
+      - experiment_service_data:/data
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=sqlite:///data/experimentation.db
+      - VALKEY_HOST=valkey
+    env_file:
+      - .env
+volumes:
+  valkey_data:
+  experiment_service_data:
