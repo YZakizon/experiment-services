@@ -1,5 +1,6 @@
-from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, ForeignKey, Text, Boolean, UniqueConstraint
+from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, ForeignKey, Text, Boolean, UniqueConstraint, Index
 from sqlalchemy.orm import sessionmaker, relationship, declarative_base
+from sqlalchemy.orm import class_mapper 
 from datetime import datetime, timezone
 from config import config
 import sqlite3
@@ -9,12 +10,15 @@ import logging
 logger = logging.getLogger(__name__)
 
 # --- Database Setup ---
-# Use SQLite for simplicity as requested
-SQLALCHEMY_DATABASE_URL =  config.database_url #"sqlite:///./experimentation.db"
+
+# Use SQLite for simplicity as requested "sqlite:///./experimentation.db"
+# To use Postgres postgresql://user:password@host:port/dbname'
+SQLALCHEMY_DATABASE_URL =  config.database_url 
 
 logger.info("SQLALCHEMY_DATABASE_URL: %s", SQLALCHEMY_DATABASE_URL)
+
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+    SQLALCHEMY_DATABASE_URL
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -31,8 +35,14 @@ def get_db():
 
 # --- Serializer Mixin ---
 class SerializerMixin:
+    """Helper class to serialize/deserialize ORM object into JSON string"""
+
     def to_dict(self, include_relationships=True, exclude_relationships_key: list=list()):
-        """Convert ORM object to dictionary, handling datetime and relationships."""
+        """
+        Convert ORM object to dictionary, handling datetime and relationships.
+        When include relationships is true, this will include data on different table
+        make sure use exclude relationships key to prevent bloated result.
+        """
         result = {}
         # Handle columns
         for c in self.__table__.columns:
@@ -63,7 +73,7 @@ class SerializerMixin:
         return json.dumps(self.to_dict(include_relationships=include_relationships, exclude_relationships_key=exclude_relationships_key))
 
     @classmethod
-    def from_dict(cls, data):
+    def from_dict(cls, data, include_relationship=True):
         """Create ORM object from dictionary (relationships skipped for simplicity)."""
         fields = {}
         for c in cls.__table__.columns:
@@ -72,12 +82,33 @@ class SerializerMixin:
                     fields[c.name] = datetime.fromisoformat(data[c.name])
                 else:
                     fields[c.name] = data[c.name]
+
+        # 2. Process Relationships (Nested fields)
+        if include_relationship:
+            mapper = class_mapper(cls)
+            for rel in mapper.relationships:
+                rel_key = rel.key
+                if rel_key in data and data[rel_key] is not None:
+                    
+                    # Get the target ORM class for the relationship
+                    target_cls = rel.entity.class_
+
+                    if isinstance(data[rel_key], list): 
+                        # One-to-many: Convert list of dictionaries to list of target ORM objects
+                        fields[rel_key] = [
+                            target_cls.from_dict(item_data, include_relationship=True)
+                            for item_data in data[rel_key]
+                        ]
+                    elif isinstance(data[rel_key], dict):
+                        # Many-to-one or One-to-one: Convert dictionary to a single target ORM object
+                        fields[rel_key] = target_cls.from_dict(data[rel_key], include_relationship=True)
+
         return cls(**fields)
 
     @classmethod
-    def from_json(cls, json_str):
+    def from_json(cls, json_str, include_relationship=True):
         data = json.loads(json_str)
-        return cls.from_dict(data)
+        return cls.from_dict(data, include_relationship)
     
 # --- SQLAlchemy Models ---
 class Experiment(Base, SerializerMixin):
@@ -122,6 +153,12 @@ class Event(Base, SerializerMixin):
     timestamp = Column(DateTime, default=datetime.now(timezone.utc), index=True)
     # Stored as text/JSON or use a JSON type if supported by the final DB
     properties_json = Column(Text, nullable=True) 
+
+    # Composite Index for Analytics (user, event type, and time range lookups)
+    # This Index is correctly defined as requested: user_id, type, then timestamp
+    __table_args__ = (
+        Index('idx_user_type_ts', 'user_id', 'type', 'timestamp'),
+    )
 
 # Function to create tables
 def create_tables():

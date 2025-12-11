@@ -10,8 +10,8 @@ from config import config
 logger = logging.getLogger(__name__)
 
 # --- Configuration Constants ---
-EXPERIMENT_CACHE_TTL = 60 # 1 hour for experiment details
-ASSIGNMENT_CACHE_TTL = 60    # 1 minute for user assignments
+EXPERIMENT_CACHE_TTL = 3600     # 1 hour for experiment details
+ASSIGNMENT_CACHE_TTL = 600      # 10 minute for user assignments
 
 # --- Valkey/Redis Backend Implementations ---
 

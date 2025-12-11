@@ -9,7 +9,8 @@ wheels/
 # Virtual environments
 .venv
 .env
+.env-docker
 experiment_service.log
 neonblue_platform_engineer_test.md
-experiment_service.db
+experiment-service.db
 test.db

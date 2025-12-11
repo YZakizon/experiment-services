@@ -5,17 +5,23 @@ This code demonstrated the API to create A/B Testing Experiment
 This demo uses sqlite, for production you may use Postgresql or hybrid Postgres and ClickHouse. 
 ClickHouse may be use to store the events and use Postgres for everythin else.
 
-# Running this demo in development
+# Running this demo in non prod
 
 ## Running with docker compose (recommened)
+```
+cp .env.example .env-docker
 docker compose up -d
+```
 
 ## Running API service
+if you only need to run the api server during development, run:
+```
 uv run uvicorn main:app --reload --port 9000
+```
 
 ## Curl Example:
 
-Set header
+Set AUTH_HEADER with your api key
 ```
 export AUTH_HEADER="Authorization: Bearer my_secret_api_key_123"
 ```
@@ -54,6 +60,16 @@ curl -L -X POST 'http://localhost:9000/events' \
   "type": "purchase",
   "properties": {"order_value": 49.99}
 }'
+
+curl -L -X POST 'http://localhost:9000/events' \
+-H 'Content-Type: application/json' \
+-H "$AUTH_HEADER" \
+-d '{
+  "user_id": "user_A_123",
+  "type": "click",
+  "properties": {"button": "buy"}
+}'
+
 ```
 
 ### Retrieve Experiment Results
@@ -61,6 +77,9 @@ curl -L -X POST 'http://localhost:9000/events' \
 # Retrieve results for Experiment ID 1, focusing on "purchase" events.
 
 curl -L -X GET 'http://localhost:9000/experiments/1/results?event_type=purchase' \
+-H "$AUTH_HEADER"
+
+curl -L -X GET 'http://localhost:9000/experiments/1/results?event_type=click' \
 -H "$AUTH_HEADER"
 ```
 

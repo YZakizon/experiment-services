@@ -9,6 +9,13 @@ services:
     command: >
       valkey-server --save 60 1 --loglevel warning --appendonly yes
     restart: unless-stopped
+    # Healthcheck added to verify Valkey is responsive
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
 
   api:
     build: .
@@ -18,11 +25,83 @@ services:
     volumes:
       - experiment_service_data:/data
     restart: unless-stopped
-    environment:
-      - DATABASE_URL=sqlite:///data/experimentation.db
-      - VALKEY_HOST=valkey
     env_file:
-      - .env
+      - .env-docker
+    depends_on:
+      valkey:
+        condition: service_healthy # Wait for redis to be healthy (optional)
+      postgres:
+        condition: service_healthy
+      worker:
+        condition: service_healthy
+    # Healthcheck: Checks the /health endpoint exposed by FastAPI
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    command: ["uv", "run", "gunicorn", "main:app", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:9000"]
+
+  
+  # 3. Celery Worker Service
+  worker:
+    build: .
+    container_name: experiment_worker
+    # Start the Celery worker pointing to your celery_worker.py app
+    command: uv run celery -A celery_tasks.event_tasks.celery_app worker -l info -Q default
+    depends_on:
+      - valkey
+      - postgres
+    env_file:
+      - .env-docker
+    healthcheck:
+        test: ["CMD-SHELL", "uv run celery -A celery_tasks.event_tasks.celery_app inspect ping || exit 1"]
+        interval: 30s
+        timeout: 10s
+        retries: 3
+        start_period: 40s
+        
+  celery_task_manager:
+    build: .
+    container_name: celery_task_manager
+    image: celery_task_manager
+    restart: unless-stopped
+    env_file:
+      - .env-docker
+    ports:
+      - 5555:5555
+    volumes:
+      - experiment_service_data:/data
+    command: uv run celery -A celery_tasks.event_tasks.celery_app flower
+    depends_on:
+      - valkey
+      - worker
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5555"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    
+
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    restart: unless-stopped
+    env_file:
+      - .env-docker
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
 volumes:
   valkey_data:
   experiment_service_data:
+  postgres_data:

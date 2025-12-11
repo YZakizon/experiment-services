@@ -51,7 +51,6 @@ def calculate_summary(
     conversion_results = conversion_query.group_by(Assignment.variant_name).all()
     
     print(f"conversion_results: {conversion_results}")
-    
     # 3. Get Total Assignments (Denominator)
     # We must count all assignments, regardless of conversion, to get the total traffic.
     assignment_counts = db.query(
