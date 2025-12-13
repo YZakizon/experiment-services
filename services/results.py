@@ -23,15 +23,6 @@ def calculate_summary(
     if not experiment:
         raise HTTPException(status_code=404, detail="Experiment not found.")
 
-    # Convert start_date string to datetime object if provided
-    # start_datetime = None
-    # if start_date:
-    #     try:
-    #         # Assuming ISO format (e.g., YYYY-MM-DDTHH:MM:SS)
-    #         start_datetime = datetime.fromisoformat(start_date)
-    #     except ValueError:
-    #         raise HTTPException(status_code=400, detail="Invalid start_date format. Use ISO format.")
-
     # 2. Build the Core Query for Conversions
     
     # We join Assignments (A) and Events (E) to ensure we link the conversion back to the variant.
