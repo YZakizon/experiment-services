@@ -4,12 +4,15 @@ from datetime import datetime
 from fastapi import HTTPException
 from models.results import ExperimentResultsSummary, VariantResult
 from data.database import Assignment, Event, Experiment
+import logging
+
+logger = logging.getLogger(__name__)
 
 def calculate_summary(
     db: Session, 
     experiment_id: int, 
     event_type: str, 
-    start_date: str | None
+    start_datetime: datetime | None
 ) -> ExperimentResultsSummary:
     """
     Calculates experiment performance summary with the required time-filter logic.
@@ -21,13 +24,13 @@ def calculate_summary(
         raise HTTPException(status_code=404, detail="Experiment not found.")
 
     # Convert start_date string to datetime object if provided
-    start_datetime = None
-    if start_date:
-        try:
-            # Assuming ISO format (e.g., YYYY-MM-DDTHH:MM:SS)
-            start_datetime = datetime.fromisoformat(start_date)
-        except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid start_date format. Use ISO format.")
+    # start_datetime = None
+    # if start_date:
+    #     try:
+    #         # Assuming ISO format (e.g., YYYY-MM-DDTHH:MM:SS)
+    #         start_datetime = datetime.fromisoformat(start_date)
+    #     except ValueError:
+    #         raise HTTPException(status_code=400, detail="Invalid start_date format. Use ISO format.")
 
     # 2. Build the Core Query for Conversions
     
@@ -46,6 +49,7 @@ def calculate_summary(
     
     # Apply optional date filtering
     if start_datetime:
+        logger.debug("calculate summary from start_datetime %s", start_datetime)
         conversion_query = conversion_query.filter(Event.timestamp >= start_datetime)
     
     conversion_results = conversion_query.group_by(Assignment.variant_name).all()
