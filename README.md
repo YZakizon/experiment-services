@@ -1,13 +1,18 @@
 # A/B Testing Experiment
 
-This code demonstrated the API to create A/B Testing Experiment
+Simple API to create A/B Testing Experiment
 
-This demo uses sqlite, for production you may use Postgresql or hybrid Postgres and ClickHouse. 
-ClickHouse may be use to store the events and use Postgres for everythin else.
+This project uses Postgres, for production you may use ClickHouse 
+to store the events and use Postgres for everything else.
 
-# Running this demo in non prod
+Features:
+- Use Postgres database
+- Use celery for high performance events collector
+
+# Running this demo in non production
 
 ## Running with docker compose (recommened)
+Copy .env.example to .env-docker and modify the hostname if necessary
 ```
 cp .env.example .env-docker
 docker compose up -d
@@ -15,6 +20,9 @@ docker compose up -d
 
 ## Running API service
 if you only need to run the api server during development, run:
+Copy .env.example to .env and modify the hostname if necessary.
+By default .env will be called if you run this not from docker-compose
+
 ```
 uv run uvicorn main:app --reload --port 9000
 ```
@@ -52,6 +60,7 @@ curl -L -X GET 'http://localhost:9000/experiments/1/assignment/user_A_123' \
 
 ### Record an Event (Conversion)
 ```
+# Post event for user A_123 on "purchase" event.
 curl -L -X POST 'http://localhost:9000/events' \
 -H 'Content-Type: application/json' \
 -H "$AUTH_HEADER" \
@@ -61,6 +70,7 @@ curl -L -X POST 'http://localhost:9000/events' \
   "properties": {"order_value": 49.99}
 }'
 
+# Post event for user A_123 on "click" event.
 curl -L -X POST 'http://localhost:9000/events' \
 -H 'Content-Type: application/json' \
 -H "$AUTH_HEADER" \
@@ -79,6 +89,11 @@ curl -L -X POST 'http://localhost:9000/events' \
 curl -L -X GET 'http://localhost:9000/experiments/1/results?event_type=purchase' \
 -H "$AUTH_HEADER"
 
+# Retrieve results for last 1 day
+curl -L -X GET 'http://localhost:9000/experiments/1/results?event_type=purchase&last_day=1' \
+-H "$AUTH_HEADER"
+
+# Retrieve results for Experiment ID 1, focusing on "click" events.
 curl -L -X GET 'http://localhost:9000/experiments/1/results?event_type=click' \
 -H "$AUTH_HEADER"
 ```
