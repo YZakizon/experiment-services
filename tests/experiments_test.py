@@ -1,6 +1,8 @@
 from fastapi import status
 from data.database import get_db, Experiment, Variant
 from sqlalchemy.orm import Session
+from unittest.mock import patch, MagicMock
+
 # from tests.conftest import db_session
 
 def test_create_experiment(client, db_session):
@@ -58,7 +60,8 @@ def test_get_assignment(client):
     assert "variant_name" in data
     assert data["variant_name"] in variants_name
 
-def test_record_event(client):
+@patch("api.events_routes.insert_event_to_db.delay")
+def test_record_event(mock_delay, client):
     payload = {
         "user_id": "user123",
         "type": "purchase",
@@ -66,10 +69,16 @@ def test_record_event(client):
         "properties": {"amount": 100}
     }
 
+    # Create a fake AsyncResult-like object
+    fake_result = MagicMock()
+    fake_result.id = "1234"
+    fake_result.status = "SUCCESS"
+    mock_delay.return_value = fake_result
+
     headers = {"Authorization": "Bearer fake-client-token"}
     response = client.post("/events", json=payload, headers=headers)
-    assert response.status_code == status.HTTP_201_CREATED
+    assert response.status_code == status.HTTP_200_OK
     data = response.json()
-    assert data["user_id"] == "user123"
-    assert data["type"] == "purchase"
+    assert data["status"] == "success"
+    assert data["task_id"] == "1234"
 
